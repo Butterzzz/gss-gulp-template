@@ -1,9 +1,10 @@
 extends ../layouts/default
 
 block variables
-  - var title = 'Главная страница'
-  - var includeHomeLink = false
-  - 
+  - var title = 'Главная страница';
+  - var includeHomeLink = false;
+  - var pageStylesheet = '/index.css';
+  -
     var cardsData = [
       {'image': '/images/card.svg', 'title': 'Заголовок карточки 1', 'text': 'Текст карточки 1'},
       {'image': '/images/card.svg', 'title': 'Заголовок карточки 2', 'text': 'Текст карточки 2'},
@@ -18,4 +19,4 @@ block content
         each card in cardsData
           +card(card.image, card.title, card.text)
       else
-       p Карточек нет
+        p Карточек нет

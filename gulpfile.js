@@ -9,6 +9,7 @@ const mediaquery = require('postcss-combine-media-query');
 const cssnano = require('cssnano');
 const htmlMinify = require('html-minifier');
 const gulpPug = require('gulp-pug');
+const sass = require('gulp-sass')(require('sass'));
 
 function serve() {
   browserSync.init({
@@ -19,10 +20,13 @@ function serve() {
 }
 
 function pug() {
-  return gulp.src('src/pages/**/*.pug')
-    .pipe(gulpPug({
-      pretty: true
-    }))
+  return gulp
+    .src('src/pages/**/*.pug')
+    .pipe(
+      gulpPug({
+        pretty: true,
+      })
+    )
     .pipe(gulp.dest('dist/'))
     .pipe(browserSync.reload({ stream: true }));
 }
@@ -37,26 +41,46 @@ function html() {
     useShortDoctype: true,
     collapseWhitespace: true,
     minifyCSS: true,
-    keepClosingSlash: true
+    keepClosingSlash: true,
   };
-  return gulp.src('src/**/*.html')
+  return gulp
+    .src('src/**/*.html')
     .pipe(plumber())
     .on('data', function (file) {
-      const buferFile = Buffer.from(htmlMinify.minify(file.contents.toString(), options))
-      return file.contents = buferFile
+      const buferFile = Buffer.from(
+        htmlMinify.minify(file.contents.toString(), options)
+      );
+      return (file.contents = buferFile);
     })
     .pipe(gulp.dest('dist/'))
     .pipe(browserSync.reload({ stream: true }));
 }
 
-function css() {
-  const plugins = [
-    autoprefixer(),
-    mediaquery(),
-    cssnano()
-  ]
+function layoutScss() {
+  const plugins = [autoprefixer(), mediaquery(), cssnano()];
   return gulp
-    .src('src/components/**/*.css')
+    .src('src/layouts/**/*.scss')
+    .pipe(sass())
+    .pipe(concat('bundle.css'))
+    .pipe(postcss(plugins))
+    .pipe(gulp.dest('dist/'))
+    .pipe(browserSync.reload({ stream: true }));
+}
+
+function pagesScss() {
+  const plugins = [autoprefixer(), mediaquery(), cssnano()];
+  return gulp
+    .src('src/pages/**/*.scss')
+    .pipe(sass())
+    .pipe(postcss(plugins))
+    .pipe(gulp.dest('dist/'))
+    .pipe(browserSync.reload({ stream: true }));
+}
+
+function css() {
+  const plugins = [autoprefixer(), mediaquery(), cssnano()];
+  return gulp
+    .src('src/**/*.css')
     .pipe(plumber())
     .pipe(concat('bundle.css'))
     .pipe(postcss(plugins))
@@ -76,17 +100,21 @@ function clean() {
 }
 
 function watchFiles() {
-  gulp.watch(['src/pages/**/*.pug'], pug);
+  gulp.watch(['src/**/*.pug'], pug);
   gulp.watch(['src/**/*.html'], html);
-  gulp.watch(['src/blocks/**/*.css'], css);
-  gulp.watch(['src/images/**/*.{jpg,png,svg,gif,ico,webp,avif}'], images);
+  gulp.watch(['src/layouts/**/*.scss'], layoutScss);
+  gulp.watch(['src/pages/**/*.scss'], pagesScss);
+  gulp.watch(['src/**/*.css'], css);
+  gulp.watch(['src/**/*.{jpg,png,svg,gif,ico,webp,avif}'], images);
 }
 
-const build = gulp.series(clean, gulp.parallel(pug, css, images));
+const build = gulp.series(clean, gulp.parallel(pug, layoutScss, pagesScss, images));
 const watchapp = gulp.parallel(build, watchFiles, serve);
 
-exports.html = html;
 exports.pug = pug;
+exports.html = html;
+exports.layoutScss = layoutScss;
+exports.pagesScss = pagesScss;
 exports.css = css;
 exports.images = images;
 exports.clean = clean;
